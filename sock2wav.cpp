@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <time.h>
 
 // usage
 // sock2wav -p ./wavedir -s 32000 -S 10K outputfile
@@ -27,6 +28,8 @@ int main(int argc, char *argv[]) {
 	int port = 0;
 	int fs = 32000;
 	int splitSize = 1000;
+
+	//Command line optioons handling
 	int i, opt;
 	opterr = 0;
 	char lastchar;
@@ -73,6 +76,8 @@ int main(int argc, char *argv[]) {
 				break;
 		}
 	}
+
+	// Check missing mandatory options
 	if (strlen(ip_addr) == 0){
 		printf("ip address is not specified.");
 		exit(-1);
@@ -87,6 +92,7 @@ int main(int argc, char *argv[]) {
 	}
 	printf("output base file name is %s \n", baseFileName);
 
+	//setup socket
 	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) != 0) {
 		perror("Socket");
 	}
@@ -95,6 +101,7 @@ int main(int argc, char *argv[]) {
 	addr.sin_port = htons(port);
 	addr.sin_addr.s_addr = inet_addr(ip_addr);
 
+	//Connect to Receiver
 	int result = 0;
 	result = connect(sockfd, (struct sockaddr *) &addr, sizeof(struct sockaddr_in));
 
@@ -144,12 +151,22 @@ int main(int argc, char *argv[]) {
 
 	FILE *pFile;
 	int total = 0;
-	int filecount = 0;
-	while (filecount < 10) {
+//	int filecount = 0;
+	struct tm *timeptr;
+	char timebuf[100];
+	time_t t;
+
+	//Receive loop
+	while (true) {
+
+		//get current time
+		t = time(NULL);
+		timeptr = localtime(&t);
+		strftime(timebuf, sizeof(timebuf), "__%Y_%m_%d__%H_%M_%S", timeptr);
 
 		// file open
 		char filename[50];
-		sprintf(filename, "%s%s_%d.wav", outputPath, baseFileName, filecount++);
+		sprintf(filename, "%s%s_%s.wav", outputPath, baseFileName, timebuf);
 		pFile = fopen(filename, "wb");
 		fseek(pFile, sizeof(WAVEFMT), SEEK_SET);
 		total = 0;
