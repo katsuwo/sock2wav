@@ -12,7 +12,16 @@ ATC波の24時間記録システムの実験で作成した。
 コマンドラインオプションで指定するように書き換えるなりするのが宜し。
 
 ## 起動方法
-$ sock2wav
+$ sock2wav [-i receiver IP address] [-P receiver port] [-p output_path] [-s sampling frequency(Hz)] [-S file split size(kByte)] output_fllename
+
+$ sock2wav -i 192.168.0.10 -P 8080 -p /home/testuser/wavedat -s 32000 -S 1000 wavefile
+上記の場合
+レシーバーのIP 192.168.0.10
+使用ポート 8080
+出力ファイルパス /home/testuser/wavedat
+サンプリング周波数 32k
+ファイル分割 1MByte
+出力ファイル名 wave(連番が付加される).wav
 
 
 
