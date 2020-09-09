@@ -168,6 +168,7 @@ int main(int argc, char *argv[]) {
 		char filename[1024];
 		sprintf(filename, "%s%s_%s.wav", outputPath, baseFileName, timebuf);
 		pFile = fopen(filename, "wb");
+		std::cout << "make new file:" << filename << std::endl;
 		fseek(pFile, sizeof(WAVEFMT), SEEK_SET);
 		total = 0;
 
@@ -185,7 +186,7 @@ int main(int argc, char *argv[]) {
 				fflush(pFile);
 				fclose(pFile);
 
-				printf("file output:%s", filename);
+				std::cout << "file output:" << filename << std::endl;
 				break;
 			}
 		}
