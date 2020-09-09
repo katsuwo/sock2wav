@@ -9,7 +9,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <time.h>
-
+#include <iostream>
 // usage
 // sock2wav -p ./wavedir -s 32000 -S 10K outputfile
 // -p : wave_file output path
@@ -165,7 +165,7 @@ int main(int argc, char *argv[]) {
 		strftime(timebuf, sizeof(timebuf), "__%Y_%m_%d__%H_%M_%S", timeptr);
 
 		// file open
-		char filename[50];
+		char filename[1024];
 		sprintf(filename, "%s%s_%s.wav", outputPath, baseFileName, timebuf);
 		pFile = fopen(filename, "wb");
 		fseek(pFile, sizeof(WAVEFMT), SEEK_SET);
@@ -184,7 +184,8 @@ int main(int argc, char *argv[]) {
 				fwrite(&wavefmt, sizeof(WAVEFMT), 1, pFile);
 				fflush(pFile);
 				fclose(pFile);
-				printf("file output:%s\n", filename);
+
+				printf("file output:%s", filename);
 				break;
 			}
 		}
