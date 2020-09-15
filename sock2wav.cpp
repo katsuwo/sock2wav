@@ -10,12 +10,18 @@
 #include <sys/stat.h>
 #include <time.h>
 #include <iostream>
+#include <chrono>
+
 // usage
 // sock2wav -p ./wavedir -s 32000 -S 10K outputfile
 // -p : wave_file output path
 // -f : wave_file_name
 // -s : sampling frequency
 // -S : wave file split size(kByte)
+// -b : bits per sample
+
+double get_time_msec(void);
+using namespace std::chrono;
 
 int main(int argc, char *argv[]) {
 
@@ -26,14 +32,16 @@ int main(int argc, char *argv[]) {
 	char baseFileName[1024] = "wavefile";
 	char ip_addr[128] = "";
 	int port = 0;
-	int fs = 32000;
+	int fs = 48000;
 	int splitSize = 1000;
+	int splitTime = 0;
+	int bps = 16;
 
 	//Command line optioons handling
 	int i, opt;
 	opterr = 0;
 	char lastchar;
-	while ((opt = getopt(argc, argv, "p:i:P:s:S:")) != -1) {
+	while ((opt = getopt(argc, argv, "p:i:P:s:S:T:b")) != -1) {
 		switch (opt) {
 			case 'p':
 				strcpy(outputPath, optarg);
@@ -48,6 +56,11 @@ int main(int argc, char *argv[]) {
 					printf("can't find output path %s\n", outputPath);
 					exit(-1);
 				}
+				break;
+
+			case 'b':
+				printf("Bits/sample is %s \n", ip_addr);
+				bps = std::atoi(optarg);
 				break;
 
 			case 'i':
@@ -67,11 +80,16 @@ int main(int argc, char *argv[]) {
 
 			case 'S':
 				splitSize = std::atoi(optarg);
-				printf("file split size is %dkBytes \n",splitSize);
+				printf("file split size is %d Bytes \n",splitSize);
+				break;
+
+			case 'T':
+				splitTime = std::atoi(optarg);
+				printf("file split time is %d sec \n",splitTime);
 				break;
 
 			default:
-				printf("Usage: %s [-i receiver IP address] [-P receiver port] [-p output_path] [-s sampling frequency(Hz)] [-S file split size(kByte)] output_filename \n", argv[0]);
+				printf("Usage: %s [-i receiver IP address] [-P receiver port] [-p output_path] [-s sampling frequency(Hz)] [-S file split size(kByte)] [-T file split time(sec)] output_filename \n", argv[0]);
 				exit(-1);
 				break;
 		}
@@ -145,13 +163,12 @@ int main(int argc, char *argv[]) {
 	wavefmt.channels = 1; // mono:1 stereo:2
 	wavefmt.sampling_freq = fs;
 	wavefmt.block_size = 2; // mono:2 stereo:4
-	wavefmt.bytes_per_sec = wavefmt.block_size * wavefmt.sampling_freq ;
-	wavefmt.bits_per_sample = 16;
+	wavefmt.bytes_per_sec = wavefmt.block_size * wavefmt.sampling_freq;
+	wavefmt.bits_per_sample = bps;
 	strncpy(wavefmt.subchunk_ident, "data", 4);
 
 	FILE *pFile;
 	int total = 0;
-//	int filecount = 0;
 	struct tm *timeptr;
 	char timebuf[100];
 	time_t t;
@@ -171,13 +188,17 @@ int main(int argc, char *argv[]) {
 		fseek(pFile, sizeof(WAVEFMT), SEEK_SET);
 		total = 0;
 
+		//write start time
+		double startTime = get_time_msec();
 		while (true) {
 			rsize = recv(sockfd, buf, sizeof(buf), 0);
 			if (rsize > 0) {
 				fwrite(buf, 1, rsize, pFile);
 				total += rsize;
 			}
-			if (total >= splitSize * 1024) {
+			double duration = get_time_msec() - startTime;
+			if (((total >= splitSize * 1024) && (splitTime == 0)) ||
+				(( duration / 1000 ) >= splitTime) && (splitTime != 0 )) {
 				fseek(pFile, 0, SEEK_SET);
 				wavefmt.chunk_size = (int) sizeof(WAVEFMT) + total - 8;
 				wavefmt.subchunk_size = total - 126;
@@ -190,4 +211,8 @@ int main(int argc, char *argv[]) {
 			}
 		}
 	}
+
+}
+double get_time_msec(void){
+	return static_cast<double>(duration_cast<nanoseconds>(steady_clock::now().time_since_epoch()).count())/1000000;
 }
