@@ -17,7 +17,8 @@
 // -p : wave_file output path
 // -f : wave_file_name
 // -s : sampling frequency
-// -S : wave file split size(kByte)
+// -S : wave file split size(Byte)
+// -T : wave file split Time(sec)
 // -b : bits per sample
 
 double get_time_msec(void);
@@ -170,7 +171,7 @@ int main(int argc, char *argv[]) {
 	FILE *pFile;
 	int total = 0;
 	struct tm *timeptr;
-	char timebuf[100];
+	char timebuf[512];
 	time_t t;
 
 	//Receive loop
@@ -191,13 +192,15 @@ int main(int argc, char *argv[]) {
 		//write start time
 		double startTime = get_time_msec();
 		while (true) {
+			double duration = get_time_msec() - startTime;
 			rsize = recv(sockfd, buf, sizeof(buf), 0);
+
 			if (rsize > 0) {
 				fwrite(buf, 1, rsize, pFile);
 				total += rsize;
 			}
-			double duration = get_time_msec() - startTime;
-			if (((total >= splitSize * 1024) && (splitTime == 0)) ||
+
+			if (((total >=splitSize * 1024) && (splitTime == 0)) ||
 				(( duration / 1000 ) >= splitTime) && (splitTime != 0 )) {
 				fseek(pFile, 0, SEEK_SET);
 				wavefmt.chunk_size = (int) sizeof(WAVEFMT) + total - 8;
@@ -211,8 +214,8 @@ int main(int argc, char *argv[]) {
 			}
 		}
 	}
-
 }
+
 double get_time_msec(void){
 	return static_cast<double>(duration_cast<nanoseconds>(steady_clock::now().time_since_epoch()).count())/1000000;
 }
