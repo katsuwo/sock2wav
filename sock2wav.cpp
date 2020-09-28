@@ -11,6 +11,8 @@
 #include <time.h>
 #include <iostream>
 #include <chrono>
+#include "unistd.h"
+
 
 // usage
 // sock2wav -p ./wavedir -s 32000 -S 10K outputfile
@@ -129,7 +131,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	int rsize;
-	char buf[100];
+	char buf[10000];
 	memset(buf, 0, sizeof(buf));
 
 	// set to non blocking
@@ -212,7 +214,10 @@ int main(int argc, char *argv[]) {
 				std::cout << "file output:" << filename << std::endl;
 				break;
 			}
-		}
+            else {
+                usleep(100000);
+            }
+        }
 	}
 }
 
