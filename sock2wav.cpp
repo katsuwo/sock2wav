@@ -12,6 +12,8 @@
 #include <iostream>
 #include <chrono>
 #include "unistd.h"
+#include <time.h>
+
 
 
 // usage
@@ -24,6 +26,7 @@
 // -b : bits per sample
 
 double get_time_msec(void);
+int get_current_minute();
 using namespace std::chrono;
 
 int main(int argc, char *argv[]) {
@@ -40,7 +43,7 @@ int main(int argc, char *argv[]) {
 	int splitTime = 0;
 	int bps = 16;
 
-	//Command line optioons handling
+	//Command line options handling
 	int i, opt;
 	opterr = 0;
 	char lastchar;
@@ -193,6 +196,7 @@ int main(int argc, char *argv[]) {
 
 		//write start time
 		double startTime = get_time_msec();
+		int old_minute = get_current_minute();
 		while (true) {
 			double duration = get_time_msec() - startTime;
 			rsize = recv(sockfd, buf, sizeof(buf), 0);
@@ -202,8 +206,11 @@ int main(int argc, char *argv[]) {
 				total += rsize;
 			}
 
+			int minute = get_current_minute();
 			if (((total >=splitSize * 1024) && (splitTime == 0)) ||
-				(( duration / 1000 ) >= splitTime) && (splitTime != 0 )) {
+			    ((( duration / 1000 ) >= splitTime) && (splitTime > 0 )) ||
+                ((old_minute != minute ) && (splitTime == -1 ))) {
+
 				fseek(pFile, 0, SEEK_SET);
 				wavefmt.chunk_size = (int) sizeof(WAVEFMT) + total - 8;
 				wavefmt.subchunk_size = total - 126;
@@ -215,10 +222,17 @@ int main(int argc, char *argv[]) {
 				break;
 			}
             else {
-                usleep(100000);
+                usleep(10);
             }
+            old_minute = minute;
         }
 	}
+}
+int get_current_minute() {
+    time_t now = time(NULL);
+    struct tm *pnow = localtime(&now);
+    char tbuff[128] = "";
+    return pnow->tm_min;
 }
 
 double get_time_msec(void){
